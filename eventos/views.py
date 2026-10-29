@@ -2,7 +2,7 @@ from django.db import transaction
 from django.http import StreamingHttpResponse
 from rest_framework import status, views
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, renderer_classes
 from rest_framework.response import Response
 
 from administracion.models import Socio
@@ -30,9 +30,19 @@ def alerta_panico_view(request):
         'alerta': AlertaSerializer(alerta).data,
     }, status=status.HTTP_201_CREATED)
 
+from rest_framework.renderers import BaseRenderer
+
+class EventStreamRenderer(BaseRenderer):
+    media_type = 'text/event-stream'
+    format = 'event-stream'
+    charset = 'utf-8'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
+@renderer_classes([EventStreamRenderer])
 @permission_classes([IsGuardiaRole])
 def stream(request):
     """Conserva el endpoint SSE que ya expone la rama eventos."""

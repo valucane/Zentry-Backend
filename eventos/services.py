@@ -12,16 +12,16 @@ def eventos():
         close_old_connections()
         alertas = BotonPanico.objects.filter(
             estado=AlertaState.pendiente,
-        ).select_related('socio').order_by('id')
+        ).select_related('created_by').order_by('id')
         if not alertas:
             yield ': ping\n\n'
         for alerta in alertas:
             data = json.dumps({
                 'alerta_id': alerta.id,
-                'nro_lote': alerta.lote,
+                'nro_lote': alerta.lote.numero,
                 'telefono': alerta.created_by.telefono,
                 'razon': alerta.razon,
-                'nombre': alerta.created_by.nombre_completo(),
+                'nombre': alerta.created_by.nombre,
             })
             alerta.estado = AlertaState.enviada
             alerta.save()
