@@ -71,7 +71,7 @@ class AlertaRecepcionarView(views.APIView):
         if len(motivo) > 30:
             return Response({'detail': 'El motivo no puede superar 30 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
         with transaction.atomic():
-            alerta = BotonPanico.objects.select_for_update().select_related('created_by', 'lote').filter(pk=pk).first()
+            alerta = BotonPanico.objects.select_related('created_by', 'lote').get(pk=pk)
             if not alerta:
                 return Response({'detail': 'Alerta inexistente.'}, status=status.HTTP_404_NOT_FOUND)
             if alerta.estado not in (AlertaState.pendiente, AlertaState.enviada):
