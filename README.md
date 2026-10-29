@@ -55,6 +55,13 @@ repositorio) y ejecutá `python manage.py configurar_administrador`. El login de
 administrador valida esas credenciales contra la cuenta real; no hay contraseñas
 maestras guardadas en el código.
 
+Una vez iniciada la sesión, un administrador puede crear otra cuenta
+administradora con `POST /api/administradores/`. Enviá el token de sesión en
+`Authorization: Token <token>` y un JSON con `nombre`, `dni`, `email` y
+`password` (mínimo 8 caracteres). El endpoint devuelve `201 Created` con los
+datos del perfil, nunca la contraseña. Residentes, guardias y usuarios sin
+autenticación no pueden crear administradores.
+
 Si un residente fue creado antes de habilitar la creación automática de cuentas,
 definí `ZENTRY_RESIDENT_EMAIL` y `ZENTRY_RESIDENT_PASSWORD` en el `.env` local y
 ejecutá `python manage.py configurar_acceso_residente`. El comando vincula el

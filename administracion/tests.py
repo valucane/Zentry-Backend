@@ -8,7 +8,7 @@ from django.core.management import call_command
 from django.urls import reverse
 from rest_framework.test import APIClient, APITestCase
 
-from .models import Account, Guardia, Lote, Socio
+from .models import Account, Administrador, Guardia, Lote, Socio
 
 
 class AdministratorLoginTests(APITestCase):
@@ -71,6 +71,86 @@ class AdministratorLoginTests(APITestCase):
         user = User.objects.get(email=email)
         self.assertTrue(authenticate(username=user.username, password=password))
         self.assertEqual(user.account.role, 'admin')
+
+
+class AdministratorCreationTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin-creacion',
+            email='admin-creacion@example.com',
+            password='password-admin-123',
+        )
+        Account.objects.create(user=self.admin, role='admin')
+        self.url = reverse('administradores-list')
+        self.payload = {
+            'nombre': 'Pepita',
+            'dni': '30101010',
+            'email': 'pepita@example.com',
+            'password': 'password-pepita-123',
+        }
+
+    def test_admin_can_create_another_administrator(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.post(self.url, self.payload, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertNotIn('password', response.data)
+        self.assertEqual(response.data['nombre'], self.payload['nombre'])
+        self.assertEqual(response.data['dni'], self.payload['dni'])
+        self.assertEqual(response.data['email'], self.payload['email'])
+        administrador = Administrador.objects.get(pk=response.data['id'])
+        self.assertEqual(administrador.account.role, 'admin')
+        self.assertTrue(administrador.account.user.check_password(self.payload['password']))
+
+        login = self.client.post(
+            reverse('api-login'),
+            {
+                'email': self.payload['email'],
+                'password': self.payload['password'],
+                'rol': 'administrador',
+            },
+            format='json',
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.data['user']['role_code'], 'admin')
+
+    def test_administrator_creation_requires_an_existing_admin(self):
+        response = self.client.post(self.url, self.payload, format='json')
+        self.assertEqual(response.status_code, 401)
+
+        residente = User.objects.create_user(
+            username='residente-creacion',
+            email='residente-creacion@example.com',
+            password='password-residente-123',
+        )
+        Account.objects.create(user=residente, role='socio')
+        self.client.force_authenticate(user=residente)
+        response = self.client.post(self.url, self.payload, format='json')
+        self.assertEqual(response.status_code, 403)
+
+        guardia = User.objects.create_user(
+            username='guardia-creacion',
+            email='guardia-creacion@example.com',
+            password='password-guardia-123',
+        )
+        Account.objects.create(user=guardia, role='guardia')
+        self.client.force_authenticate(user=guardia)
+        response = self.client.post(self.url, self.payload, format='json')
+        self.assertEqual(response.status_code, 403)
+
+    def test_administrator_creation_rejects_duplicate_email(self):
+        self.client.force_authenticate(user=self.admin)
+        User.objects.create_user(
+            username='cuenta-existente',
+            email=self.payload['email'].upper(),
+            password='password-existente-123',
+        )
+
+        response = self.client.post(self.url, self.payload, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.data)
 
 
 class ResidentLoginTests(APITestCase):

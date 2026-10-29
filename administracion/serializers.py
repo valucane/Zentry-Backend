@@ -161,6 +161,38 @@ class SocioSerializer(serializers.ModelSerializer):
         return socio
 
 
+class AdministradorSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    is_active = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Administrador
+        fields = ['id', 'nombre', 'dni', 'email', 'password', 'is_active']
+        read_only_fields = ['id', 'is_active']
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                'Ya existe una cuenta con este correo electrónico.'
+            )
+        return value
+
+    @transaction.atomic
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        email = validated_data['email']
+        user = User(
+            username=f'administrador_{secrets.token_hex(16)}',
+            email=email,
+            first_name=validated_data['nombre'],
+        )
+        user.set_password(password)
+        user.save()
+        validated_data['account'] = Account.objects.create(user=user, role='admin')
+        return super().create(validated_data)
+
+
 class GuardiaSerializer(serializers.ModelSerializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, required=False, min_length=8)

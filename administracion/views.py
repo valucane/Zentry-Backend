@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db import transaction
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -10,14 +10,21 @@ from rest_framework.throttling import AnonRateThrottle
 
 import base.views as baseviews
 from base import permissions
-from .models import Lote, PuntoAcceso, Socio, Guardia, Account
+from .models import Lote, PuntoAcceso, Socio, Administrador, Guardia, Account
 from .serializers import (
+    AdministradorSerializer,
     GuardiaSerializer,
     LoteSerializer,
     PuntoAccesoSerializer,
     SocioSerializer,
 )
 from . import services
+
+
+class AdministradorViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    queryset = Administrador.objects.all()
+    serializer_class = AdministradorSerializer
+    permission_classes = [permissions.IsAdminRole]
 
 
 class LoteViewSet(baseviews.BaseViewSet):
