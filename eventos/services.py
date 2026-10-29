@@ -21,6 +21,7 @@ def eventos():
                 'nro_lote': alerta.lote,
                 'telefono': alerta.created_by.telefono,
                 'razon': alerta.razon,
+                'nombre': alerta.created_by.nombre_completo(),
             })
             alerta.estado = AlertaState.enviada
             alerta.save()
