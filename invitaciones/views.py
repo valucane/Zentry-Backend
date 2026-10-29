@@ -70,11 +70,7 @@ class InvitacionViewSet(viewsets.ModelViewSet):
     def _registrar_ingreso(self, invitacion_id):
         with transaction.atomic():
             try:
-                invitacion = (
-                    Invitacion.objects.select_for_update()
-                    .select_related('invitado', 'punto_acceso', 'socio')
-                    .get(pk=invitacion_id)
-                )
+                invitacion = Invitacion.objects.select_related('invitado', 'punto_acceso', 'socio').get(pk=invitacion_id)
             except Invitacion.DoesNotExist:
                 return Response(
                     {'detail': 'La invitacion no existe.'},
