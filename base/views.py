@@ -3,7 +3,12 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-class ActiveViewSet(viewsets.ModelViewSet):
+from base import permissions
+
+class BaseViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+class ActiveViewSet(BaseViewSet):
     """ Define queryset with manager all_objects so the actions from this view can interact with inactive objects."""
 
     def get_queryset(self):

@@ -36,13 +36,45 @@ Tambien se encarga de los lotes y los puntos de acceso.
 
 **Modelos:**
 
-- Account (pending)
+- Account
 - Socio <--- Persona
 - Proveedor <-- Persona
 - Guardia <-- Persona
 - Administrador <-- Persona
 - Lote
 - PuntoAcceso
+
+Para habilitar el acceso de un residente, la administración debe crear el usuario
+en Usuarios, asignarle una `Account` con rol `socio` y vincular esa cuenta al
+registro del residente. El ingreso de residentes requiere el email y la contraseña
+de ese usuario; no se crean cuentas de prueba durante el inicio de sesión.
+
+Para configurar la cuenta administradora, definí `ZENTRY_ADMIN_EMAIL` y
+`ZENTRY_ADMIN_PASSWORD` en el archivo `.env` local (no subas ese archivo al
+repositorio) y ejecutá `python manage.py configurar_administrador`. El login de
+administrador valida esas credenciales contra la cuenta real; no hay contraseñas
+maestras guardadas en el código.
+
+Una vez iniciada la sesión, un administrador puede crear otra cuenta
+administradora con `POST /api/administradores/`. Enviá el token de sesión en
+`Authorization: Token <token>` y un JSON con `nombre`, `dni`, `email` y
+`password` (mínimo 8 caracteres). El endpoint devuelve `201 Created` con los
+datos del perfil, nunca la contraseña. Residentes, guardias y usuarios sin
+autenticación no pueden crear administradores.
+
+Si un residente fue creado antes de habilitar la creación automática de cuentas,
+definí `ZENTRY_RESIDENT_EMAIL` y `ZENTRY_RESIDENT_PASSWORD` en el `.env` local y
+ejecutá `python manage.py configurar_acceso_residente`. El comando vincula el
+residente existente sin duplicar su perfil.
+
+La administración puede gestionar guardias en `/api/guardias/` o
+`/api/guardia/` (GET, POST,
+PATCH/PUT y DELETE). Para crear uno, enviá `nombre`, `email` y `password`;
+la contraseña debe tener al menos 8 caracteres y nunca se devuelve en las
+respuestas. Cada alta crea también una cuenta con rol `guardia`, que puede
+iniciar sesión en `/api/auth/login/` indicando `rol: "guardia"`. La baja es
+lógica y puede revertirse con `PUT /api/guardias/{id}/reactivate/`.
+También se acepta `POST /api/guardia` sin barra final.
 
 ### Invitaciones
 
@@ -58,6 +90,13 @@ Van a existir invitaciones y luego un historico de invitaciones, donde se van a 
 - InvitacionHistorico
 - RegistroAcceso
 
+Para generar el QR, el frontend debe enviar la invitacion a `POST /api/invitaciones/`.
+La respuesta incluye `qrToken`; el frontend codifica ese valor como QR (no los datos
+personales del invitado). Al escanearlo, debe enviar `{"token": "<qrToken>"}` a
+`POST /api/invitaciones/validar-qr/`. El backend verifica la vigencia antes de
+registrar el ingreso: las invitaciones unicas se aceptan una vez y las recurrentes
+se aceptan como maximo una vez por dia habilitado, dentro del rango de fechas elegido.
+
 ### Reservas
 
 Se encarga de las reservas para los espacios comunes y la trazabilidad de los mismos, registrando el estado y problemas si existen
@@ -70,9 +109,11 @@ Se encarga de las reservas para los espacios comunes y la trazabilidad de los mi
 
 ### Eventos
 
-Se encarga de notificaciones y boton de pánico
+Se encarga del boton de pánico. Esto significa la creacion de alertas, su recepcion y ademas llevar un registro de todas las veces que se uso.
 
-**(Not implemented)**
+**Modelos:**
+
+- BotonPanico
 
 ## Documentación
 
